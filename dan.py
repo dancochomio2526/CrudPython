@@ -1,60 +1,84 @@
-# Catálogo de poderes de superhéroes de Marvel
+import sqlite3
 
-catalogo = []
+# Conectar a la base de datos
+conexion = sqlite3.connect("marvel.db")
+cursor = conexion.cursor()
 
-# CREATE - Agregar un héroe
+# Crear la tabla si no existe
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS heroes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    poder TEXT NOT NULL
+)
+""")
+conexion.commit()
+
+
+# CREATE - Agregar héroe
 def agregar_heroe():
     nombre = input("Nombre del superhéroe: ")
     poder = input("Poder del superhéroe: ")
 
-    heroe = {
-        "nombre": nombre,
-        "poder": poder
-    }
+    cursor.execute(
+        "INSERT INTO heroes (nombre, poder) VALUES (?, ?)",
+        (nombre, poder)
+    )
+    conexion.commit()
 
-    catalogo.append(heroe)
     print(f"\n{nombre} agregado correctamente.\n")
 
 
-# READ - Mostrar el catálogo
+# READ - Mostrar catálogo
 def mostrar_catalogo():
-    if len(catalogo) == 0:
+    cursor.execute("SELECT * FROM heroes")
+    heroes = cursor.fetchall()
+
+    if not heroes:
         print("\nEl catálogo está vacío.\n")
         return
 
     print("\n=== CATÁLOGO DE PODERES MARVEL ===")
-    for i, heroe in enumerate(catalogo, start=1):
-        print(f"{i}. {heroe['nombre']} - {heroe['poder']}")
+    print("ID | HÉROE | PODER")
+    print("-" * 40)
+
+    for heroe in heroes:
+        print(f"{heroe[0]} | {heroe[1]} | {heroe[2]}")
+
     print()
 
 
-# UPDATE - Actualizar un poder
+# UPDATE - Actualizar poder
 def actualizar_heroe():
-    nombre = input("Ingresa el nombre del héroe a actualizar: ")
+    id_heroe = input("Ingresa el ID del héroe a actualizar: ")
+    nuevo_poder = input("Ingresa el nuevo poder: ")
 
-    for heroe in catalogo:
-        if heroe["nombre"].lower() == nombre.lower():
-            nuevo_poder = input("Ingresa el nuevo poder: ")
-            heroe["poder"] = nuevo_poder
+    cursor.execute(
+        "UPDATE heroes SET poder = ? WHERE id = ?",
+        (nuevo_poder, id_heroe)
+    )
+    conexion.commit()
 
-            print(f"\nPoder de {nombre} actualizado correctamente.\n")
-            return
+    if cursor.rowcount > 0:
+        print("\nPoder actualizado correctamente.\n")
+    else:
+        print("\nNo se encontró un héroe con ese ID.\n")
 
-    print("\nHéroe no encontrado.\n")
 
-
-# DELETE - Eliminar un héroe
+# DELETE - Eliminar héroe
 def eliminar_heroe():
-    nombre = input("Ingresa el nombre del héroe a eliminar: ")
+    id_heroe = input("Ingresa el ID del héroe a eliminar: ")
 
-    for heroe in catalogo:
-        if heroe["nombre"].lower() == nombre.lower():
-            catalogo.remove(heroe)
+    cursor.execute(
+        "DELETE FROM heroes WHERE id = ?",
+        (id_heroe,)
+    )
+    conexion.commit()
 
-            print(f"\n{nombre} eliminado del catálogo.\n")
-            return
-
-    print("\nHéroe no encontrado.\n")
+    if cursor.rowcount > 0:
+        print("\nHéroe eliminado correctamente.\n")
+    else:
+        print("\nNo se encontró un héroe con ese ID.\n")
 
 
 # Menú principal
@@ -82,8 +106,8 @@ while True:
 
     elif opcion == "5":
         print("\n¡Hasta luego!")
+        conexion.close()  # Cerrar la conexión con SQLite
         break
 
     else:
         print("\nOpción no válida. Intenta nuevamente.\n")
-        
